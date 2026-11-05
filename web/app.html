@@ -1,0 +1,182 @@
+<title>Open Pattern Blocks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a classroom table. The board is the work surface, the tray of blocks sits at the child's hand, and teacher tools live on their own tab. */
+/* A single bright look by design. System fonts only, so the app never contacts a font server. */
+:root {
+  color-scheme: light;
+  --table: #2d8f88;
+  --table-deep: #1f6f6a;
+  --paper: #fffdf6;
+  --ink: #16324a;
+  --muted: #4c6476;
+  --line: #c9d6d8;
+  --silhouette: #cfe2e0;
+  --silhouette-edge: #7fa9a6;
+  --sun: #f6c324;
+  --warn: #b3261e;
+  --round: ui-rounded, "Arial Rounded MT Bold", "Nunito", "Trebuchet MS", "Segoe UI", sans-serif;
+  --plain: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--table); color: var(--ink); font: 400 16px/1.45 var(--plain);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 14px 28px;
+}
+.shell { max-width: 1120px; margin: 0 auto; display: grid; gap: 12px; }
+header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; color: #fff; }
+h1 { margin: 0; font: 700 26px/1.1 var(--round); }
+h2 { margin: 0; font: 700 20px/1.2 var(--round); }
+.tabs { display: flex; gap: 6px; }
+button { font: 700 16px/1.1 var(--round); color: var(--ink); background: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 11px 14px; cursor: pointer; min-height: 46px; }
+button:hover { background: #fff3c4; }
+button[aria-pressed="true"], button[aria-selected="true"] { background: var(--sun); }
+button:disabled { opacity: 0.45; cursor: default; background: #fff; }
+:focus-visible { outline: 3px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 5px var(--ink); }
+.play { display: grid; gap: 10px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.grow { flex: 1 1 auto; }
+#status { margin: 0; min-height: 28px; color: #fff; font: 700 19px/1.3 var(--round); }
+.board-wrap { position: relative; background: var(--paper); border: 3px solid var(--table-deep); border-radius: 12px; overflow: hidden; }
+#board { display: block; width: 100%; height: min(58vh, 560px); min-height: 300px; touch-action: none; user-select: none; }
+#board polygon { stroke: var(--ink); stroke-width: 0.03; stroke-linejoin: round; }
+#board .target { fill: var(--silhouette); stroke: var(--silhouette-edge); stroke-width: 0.02; pointer-events: none; }
+#board .target.solid { stroke: var(--silhouette); }
+#board .piece { cursor: grab; }
+#board .piece.selected { stroke: #000; stroke-width: 0.09; }
+#board .piece:focus { outline: none; stroke: #000; stroke-width: 0.09; }
+.tray { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.tray button { padding: 6px 2px; display: grid; justify-items: center; gap: 2px; touch-action: none; font: 700 13px/1.15 var(--round); min-width: 0; }
+.tray svg { width: 100%; max-width: 76px; height: 58px; display: block; pointer-events: none; }
+.tray svg polygon { stroke: var(--ink); stroke-width: 0.05; stroke-linejoin: round; }
+.tray span { pointer-events: none; }
+.card { background: var(--paper); border-radius: 12px; padding: 16px; display: grid; gap: 14px; min-width: 0; }
+.teacher { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field.wide { grid-column: 1 / -1; }
+label { font: 700 14px/1.2 var(--plain); }
+input[type="text"], input[type="number"], select {
+  width: 100%; font: 400 16px/1.2 var(--plain); color: var(--ink); background: #fff;
+  border: 2px solid var(--line); border-radius: 8px; padding: 10px;
+}
+.check { display: flex; gap: 8px; align-items: center; font-weight: 400; }
+.check input { width: 20px; height: 20px; }
+.hint { margin: 0; color: var(--muted); font-size: 14px; }
+#preview { width: 100%; height: 340px; display: block; background: #fff; border: 2px solid var(--line); border-radius: 8px; }
+#preview polygon { stroke: var(--ink); stroke-width: 0.03; stroke-linejoin: round; }
+#preview line { stroke: var(--ink); stroke-width: 0.05; stroke-linecap: round; }
+.tally { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 15px; margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+#code { font: 400 13px/1.3 ui-monospace, Menlo, Consolas, monospace; }
+#error, #codeError { margin: 0; color: var(--warn); font-weight: 700; }
+#well-done { position: absolute; inset: auto 0 12px; margin: 0 auto; width: max-content; max-width: calc(100% - 24px); background: var(--sun); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 14px; font: 700 18px/1.25 var(--round); text-align: center; }
+details summary { color: #fff; font: 700 15px/1.3 var(--round); cursor: pointer; padding: 4px 0; }
+details .bar { margin-top: 8px; }
+footer { color: #fff; font-size: 14px; }
+@media (max-width: 760px) {
+  .teacher { grid-template-columns: minmax(0, 1fr); }
+  h1 { font-size: 22px; }
+  .tray { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tray svg { height: 46px; }
+  #board { height: 50vh; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  #well-done { animation: pop 300ms ease-out; }
+  @keyframes pop { from { transform: scale(0.8); } to { transform: scale(1); } }
+}
+</style>
+
+<div class="shell">
+  <header>
+    <h1>Open Pattern Blocks</h1>
+    <div class="tabs" role="tablist" aria-label="Who is using the app">
+      <button id="tabPlay" role="tab" aria-selected="true" aria-controls="play">Play</button>
+      <button id="tabTeacher" role="tab" aria-selected="false" aria-controls="teacher">Teachers</button>
+    </div>
+  </header>
+
+  <main id="play" role="tabpanel" aria-labelledby="tabPlay" class="play">
+    <div class="bar">
+      <button id="modePuzzle" aria-pressed="true">Puzzle</button>
+      <button id="modeFree" aria-pressed="false">Free build</button>
+      <span class="grow"></span>
+      <span class="bar" id="levels" role="group" aria-label="Puzzle size">
+        <button data-level="4" aria-pressed="true">Easy</button>
+        <button data-level="7" aria-pressed="false">Medium</button>
+        <button data-level="12" aria-pressed="false">Hard</button>
+      </span>
+      <button id="next">New puzzle</button>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+    <div class="board-wrap">
+      <svg id="board" role="application" aria-label="Pattern block board" preserveAspectRatio="xMidYMid meet"></svg>
+      <p id="well-done" hidden></p>
+    </div>
+    <div class="bar">
+      <button id="rotate" disabled>Turn block</button>
+      <button id="remove" disabled>Take away</button>
+      <span class="grow"></span>
+      <button id="clear">Clear board</button>
+    </div>
+    <div class="tray" id="tray" aria-label="Blocks"></div>
+    <details>
+      <summary>Have a puzzle code from your teacher?</summary>
+      <div class="bar">
+        <input id="codeInput" class="grow" type="text" aria-label="Puzzle code" placeholder="Paste the code here" style="width:auto;min-width:0">
+        <button id="codeOpen">Open puzzle</button>
+      </div>
+      <p id="codeError" role="alert" hidden></p>
+    </details>
+  </main>
+
+  <main id="teacher" role="tabpanel" aria-labelledby="tabTeacher" class="teacher" hidden>
+    <form class="card" id="sheetForm">
+      <h2>Make class sheets</h2>
+      <div class="fields">
+        <div class="field wide"><label for="title">Sheet title</label><input id="title" type="text" maxlength="40" value="Pattern Block Mat"></div>
+        <div class="field"><label for="sheets">Sheets</label><input id="sheets" type="number" min="1" max="30" value="6"></div>
+        <div class="field"><label for="blocks">Blocks per sheet</label><input id="blocks" type="number" min="2" max="24" value="8"></div>
+        <div class="field"><label for="style">Sheet style</label>
+          <select id="style">
+            <option value="guided">Show blocks</option>
+            <option value="outline">Outline only</option>
+            <option value="colour">Full colour</option>
+          </select>
+        </div>
+        <div class="field"><label for="paper">Paper</label>
+          <select id="paper"><option value="letter">US Letter</option><option value="a4">A4</option></select>
+        </div>
+        <div class="field"><label for="seed">Set number</label><input id="seed" type="number" min="1" max="999999" value="1"></div>
+        <div class="field" style="align-content:end">
+          <label class="check"><input id="mirror" type="checkbox"> Mirror designs</label>
+          <label class="check"><input id="answers" type="checkbox" checked> Add answer pages</label>
+        </div>
+        <label class="check field wide"><input id="useDesign" type="checkbox"> Add my Free build design as sheet 1</label>
+      </div>
+      <p id="error" role="alert" hidden></p>
+      <div class="bar">
+        <button type="submit">Download PDF</button>
+        <button type="button" id="shuffle">Change designs</button>
+      </div>
+      <p class="hint" id="note" role="status">The same set number always makes the same sheets.</p>
+    </form>
+    <section class="card" aria-label="Preview">
+      <h2>Sheet 1 preview</h2>
+      <svg id="preview" role="img" aria-label="Preview of the first sheet" preserveAspectRatio="xMidYMid meet"></svg>
+      <ul class="tally" id="tally"></ul>
+      <div class="field">
+        <label for="code">Puzzle code for this design</label>
+        <input id="code" type="text" readonly>
+      </div>
+      <div class="bar">
+        <button type="button" id="copy">Copy code</button>
+      </div>
+      <p class="hint">Share the code so children can open this design on any device. Children do not need accounts, and no pupil data is collected.</p>
+    </section>
+  </main>
+  <footer>Free and open source. Works without accounts, ads or tracking.</footer>
+</div>
+<script>/*__BUNDLE__*/</script>
